@@ -1,0 +1,84 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+iris = load_iris()
+X = iris.data
+y = iris.target
+
+df = pd.DataFrame(X, columns=iris.feature_names)
+df['target'] = y
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+def predict(X, weights):
+    return np.dot(X, weights)
+
+def compute_cost(X, y, weights):
+    m = len(y)
+    predictions = predict(X, weights)
+    cost = (1 / (2 * m)) * np.sum((predictions - y) ** 2)
+    return cost
+
+def gradient_descent(X, y, learning_rate=0.01, iterations=1000):
+    m, n = X.shape
+    weights = np.zeros(n)
+    cost_history = []
+
+    for iteration in range(iterations):
+        predictions = predict(X, weights)
+        errors = predictions - y
+        gradient = (1 / m) * np.dot(X.T, errors)
+        weights -= learning_rate * gradient
+        cost = compute_cost(X, y, weights)
+        cost_history.append(cost)
+        if iteration % 100 == 0:
+            print(f"Iteration {iteration}: Weights: {weights}")
+
+    return weights, cost_history
+
+def stochastic_gradient_descent(X, y, learning_rate=0.01, iterations=1000):
+    m, n = X.shape
+    weights = np.zeros(n)
+    cost_history = []
+
+    for _ in range(iterations):
+        for i in range(m):
+            random_index = np.random.randint(m)
+            X_i = X[random_index:random_index + 1]
+            y_i = y[random_index:random_index + 1]
+
+            predictions = predict(X_i, weights)
+            errors = predictions - y_i
+            gradient = X_i.T * errors  
+            weights -= learning_rate * gradient.flatten()
+        
+        cost = compute_cost(X, y, weights)
+        cost_history.append(cost)
+
+    return weights, cost_history
+    
+X_train_bias = np.c_[np.ones(X_train.shape[0]), X_train]
+
+print("Gradient Descent:")
+weights_gd, cost_history_gd = gradient_descent(X_train_bias, y_train, learning_rate=0.01, iterations=1000)
+
+print("\nStochastic Gradient Descent:")
+weights_sgd, cost_history_sgd = stochastic_gradient_descent(X_train_bias, y_train, learning_rate=0.01, iterations=100)
+
+plt.figure(figsize=(12, 6))
+plt.plot(cost_history_gd, label='Gradient Descent')
+plt.plot(cost_history_sgd, label='Stochastic Gradient Descent')
+plt.xlabel('Iterations')
+plt.ylabel('Cost')
+plt.title('Cost History for Gradient Descent and Stochastic Gradient Descent')
+plt.legend()
+plt.show()
+
